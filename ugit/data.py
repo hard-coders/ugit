@@ -11,11 +11,16 @@ GIT_OBJECTS_DIR = GIT_DIR / "objects"
 class ObjectType(str, Enum):
     blob = "blob"
     tree = "tree"
+    commit = "commit"
 
 
 def init() -> None:
     GIT_DIR.mkdir(exist_ok=True)
     GIT_OBJECTS_DIR.mkdir()
+
+
+def set_head(oid: str) -> None:
+    (GIT_DIR / "HEAD").write_text(oid)
 
 
 def hash_object(data: bytes, type_=ObjectType.blob) -> str:

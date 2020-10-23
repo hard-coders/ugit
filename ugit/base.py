@@ -96,5 +96,18 @@ def read_tree(tree_oid: str) -> None:
         path.write_bytes(data.get_object(oid))
 
 
+def commit(message: str) -> str:
+    """
+    :param message: commit message
+    :return: object id
+    """
+    content = f"{data.ObjectType.tree} {write_tree()}\n\n{message}\n"
+    oid = data.hash_object(content.encode(), data.ObjectType.commit)
+
+    data.set_head(oid)
+
+    return oid
+
+
 def is_ignored(path: Union[str, Path]) -> bool:
     return str(data.GIT_DIR) in Path(path).parts
