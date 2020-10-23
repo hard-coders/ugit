@@ -67,7 +67,28 @@ def get_tree(oid: str, base_path: Union[str, Path] = ".") -> Dict[str, str]:
     return result
 
 
+def _empty_current_directory() -> None:
+    for root, dirnames, filenames in os.walk(".", topdown=False):
+        for filename in filenames:
+            path = Path(root) / filename
+            if is_ignored(path) or not path.is_file():
+                continue
+            path.unlink()
+
+        for dirname in dirnames:
+            path = Path(root) / dirname
+            if is_ignored(path):
+                continue
+
+            try:
+                path.rmdir()
+            except OSError:
+                pass
+
+
 def read_tree(tree_oid: str) -> None:
+    _empty_current_directory()
+
     for path, oid in get_tree(tree_oid).items():
         path = Path(path)
 
