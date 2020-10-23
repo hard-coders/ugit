@@ -23,8 +23,7 @@ def write_tree(directory: Union[str, Path] = ".") -> str:
 
             if entry.is_file(follow_symlinks=False):
                 type_ = data.ObjectType.blob
-                with open(full, "rb") as f:
-                    oid = data.hash_object(f.read())
+                oid = data.hash_object(full.read_bytes())
             elif entry.is_dir(follow_symlinks=False):
                 type_ = data.ObjectType.tree
                 oid = write_tree(full)
@@ -70,10 +69,10 @@ def get_tree(oid: str, base_path: Union[str, Path] = ".") -> Dict[str, str]:
 
 def read_tree(tree_oid: str) -> None:
     for path, oid in get_tree(tree_oid).items():
-        Path(path).parent.mkdir(exist_ok=True)
+        path = Path(path)
 
-        with open(path, "wb") as f:
-            f.write(data.get_object(oid))
+        path.parent.mkdir(exist_ok=True)
+        path.write_bytes(data.get_object(oid))
 
 
 def is_ignored(path: Union[str, Path]) -> bool:
