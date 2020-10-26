@@ -117,6 +117,12 @@ def commit(message: str) -> str:
     return oid
 
 
+def checkout(oid: str):
+    commit_ = get_commit(oid)
+    read_tree(commit_.tree)
+    data.set_head(oid)
+
+
 def get_commit(oid: str) -> Commit:
     tree = None
     parent = None
