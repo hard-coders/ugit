@@ -6,6 +6,7 @@ from pathlib import Path
 
 GIT_DIR = Path(".ugit")
 GIT_OBJECTS_DIR = GIT_DIR / "objects"
+GIT_HEAD_FILE = GIT_DIR / "HEAD"
 
 
 class ObjectType(str, Enum):
@@ -20,7 +21,12 @@ def init() -> None:
 
 
 def set_head(oid: str) -> None:
-    (GIT_DIR / "HEAD").write_text(oid)
+    GIT_HEAD_FILE.write_text(oid)
+
+
+def get_head() -> str:
+    if GIT_HEAD_FILE.is_file():
+        return GIT_HEAD_FILE.read_text().strip()
 
 
 def hash_object(data: bytes, type_=ObjectType.blob) -> str:

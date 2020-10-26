@@ -1,8 +1,13 @@
+import itertools
+import operator
 import os
+from collections import namedtuple
 from pathlib import Path
 from typing import Union, Iterator, Tuple, Dict
 
 from . import data
+
+Commit = namedtuple("Commit", ["tree", "parent", "message"])
 
 
 def write_tree(directory: Union[str, Path] = ".") -> str:
@@ -101,12 +106,35 @@ def commit(message: str) -> str:
     :param message: commit message
     :return: object id
     """
-    content = f"{data.ObjectType.tree} {write_tree()}\n\n{message}\n"
+    content = f"{data.ObjectType.tree} {write_tree()}\n"
+    if head := data.get_head():
+        content += f"parent {head}\n"
+    content += f"\n{message}\n"
     oid = data.hash_object(content.encode(), data.ObjectType.commit)
 
     data.set_head(oid)
 
     return oid
+
+
+def get_commit(oid: str) -> Commit:
+    tree = None
+    parent = None
+
+    commit = data.get_object(oid, "commit").decode()
+    lines = commit.splitlines()
+
+    for line in itertools.takewhile(operator.truth, lines):
+        key, value = line.split(" ", 1)
+        if key == "tree":
+            tree = value
+        elif key == "parent":
+            parent = value
+        else:
+            assert False, f"Unknown field {key}"
+
+    message = "\n".join(lines)
+    return Commit(tree=tree, parent=parent, message=message)
 
 
 def is_ignored(path: Union[str, Path]) -> bool:
