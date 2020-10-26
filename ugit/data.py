@@ -3,10 +3,11 @@ import os
 from enum import Enum
 
 from pathlib import Path
-
+from typing import Iterator, Tuple, Generator
 
 GIT_DIR = Path(".ugit")
 GIT_OBJECTS_DIR = GIT_DIR / "objects"
+GIT_REFS_DIR = GIT_DIR / "refs"
 
 
 class ObjectType(str, Enum):
@@ -28,8 +29,24 @@ def update_ref(ref: str, oid: str) -> None:
 
 def get_ref(ref: str) -> str:
     ref_path = GIT_DIR / ref
+    value = None
     if ref_path.is_file():
-        return ref_path.read_text().strip()
+        value = ref_path.read_text().strip()
+
+    if value and value.startswith("ref:"):
+        return get_ref(value.split(":", 1)[1].strip())
+
+    return value
+
+
+def iter_refs() -> Generator[Tuple[str, str], None, None]:
+    refs = ["HEAD"]
+    for root, _, filenames in os.walk(GIT_REFS_DIR):
+        root = Path(root).relative_to(GIT_DIR)
+        refs.extend(str(root / name) for name in filenames)
+
+    for ref_name in refs:
+        yield ref_name, get_ref(ref_name)
 
 
 def hash_object(data: bytes, type_=ObjectType.blob) -> str:

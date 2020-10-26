@@ -1,9 +1,10 @@
 import itertools
 import operator
 import os
-from collections import namedtuple
+import string
+from collections import namedtuple, deque
 from pathlib import Path
-from typing import Union, Iterator, Tuple, Dict
+from typing import Union, Iterator, Tuple, Dict, List, Set
 
 from . import data
 
@@ -127,8 +128,8 @@ def get_commit(oid: str) -> Commit:
     tree = None
     parent = None
 
-    commit = data.get_object(oid, "commit").decode()
-    lines = commit.splitlines()
+    commit_ = data.get_object(oid, "commit").decode()
+    lines = commit_.splitlines()
 
     for line in itertools.takewhile(operator.truth, lines):
         key, value = line.split(" ", 1)
@@ -143,12 +144,49 @@ def get_commit(oid: str) -> Commit:
     return Commit(tree=tree, parent=parent, message=message)
 
 
-def create_tag(name: str, oid: str):
+def create_tag(name: str, oid: str) -> None:
     data.update_ref(f"refs/tags/{name}", oid)
 
 
-def get_oid(name: str):
-    return data.get_ref(name) or name
+def create_branch(name: str, oid: str):
+    data.update_ref(f"refs/heads/{name}", oid)
+
+
+def iter_commits_and_parents(oids: Union[Set[str], List[str]]):
+    oids = deque(oids)
+    visited = set()
+
+    while oids:
+        oid = oids.popleft()
+        if not oid or oid in visited:
+            continue
+        visited.add(oid)
+        yield oid
+
+        commit_ = get_commit(oid)
+        oids.appendleft(commit_.parent)
+
+
+def get_oid(name: str) -> str:
+    name = "HEAD" if name == "@" else name
+
+    # name is ref
+    refs_to_try = [
+        name,
+        f"refs/{name}",
+        f"refs/tags/{name}",
+        f"refs/heads/{name}",
+    ]
+    for ref in refs_to_try:
+        if found := data.get_ref(ref):
+            return found
+
+    # name is sha1
+    is_hex = all(c in string.hexdigits for c in name)
+    if len(name) == 40 and is_hex:
+        return name
+
+    assert False, f"Unknown name {name}"
 
 
 def is_ignored(path: Union[str, Path]) -> bool:
