@@ -1,4 +1,5 @@
 import hashlib
+import os
 from enum import Enum
 
 from pathlib import Path
@@ -6,7 +7,6 @@ from pathlib import Path
 
 GIT_DIR = Path(".ugit")
 GIT_OBJECTS_DIR = GIT_DIR / "objects"
-GIT_HEAD_FILE = GIT_DIR / "HEAD"
 
 
 class ObjectType(str, Enum):
@@ -20,13 +20,16 @@ def init() -> None:
     GIT_OBJECTS_DIR.mkdir()
 
 
-def set_head(oid: str) -> None:
-    GIT_HEAD_FILE.write_text(oid)
+def update_ref(ref: str, oid: str) -> None:
+    ref_path = GIT_DIR / ref
+    ref_path.parent.mkdir(parents=True, exist_ok=True)
+    ref_path.write_text(oid)
 
 
-def get_head() -> str:
-    if GIT_HEAD_FILE.is_file():
-        return GIT_HEAD_FILE.read_text().strip()
+def get_ref(ref: str) -> str:
+    ref_path = GIT_DIR / ref
+    if ref_path.is_file():
+        return ref_path.read_text().strip()
 
 
 def hash_object(data: bytes, type_=ObjectType.blob) -> str:

@@ -107,12 +107,12 @@ def commit(message: str) -> str:
     :return: object id
     """
     content = f"{data.ObjectType.tree} {write_tree()}\n"
-    if head := data.get_head():
+    if head := data.get_ref("HEAD"):
         content += f"parent {head}\n"
     content += f"\n{message}\n"
     oid = data.hash_object(content.encode(), data.ObjectType.commit)
 
-    data.set_head(oid)
+    data.update_ref("HEAD", oid)
 
     return oid
 
@@ -120,7 +120,7 @@ def commit(message: str) -> str:
 def checkout(oid: str):
     commit_ = get_commit(oid)
     read_tree(commit_.tree)
-    data.set_head(oid)
+    data.update_ref("HEAD", oid)
 
 
 def get_commit(oid: str) -> Commit:
@@ -141,6 +141,14 @@ def get_commit(oid: str) -> Commit:
 
     message = "\n".join(lines)
     return Commit(tree=tree, parent=parent, message=message)
+
+
+def create_tag(name: str, oid: str):
+    data.update_ref(f"refs/tags/{name}", oid)
+
+
+def get_oid(name: str):
+    return data.get_ref(name) or name
 
 
 def is_ignored(path: Union[str, Path]) -> bool:
